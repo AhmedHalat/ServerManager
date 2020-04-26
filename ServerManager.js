@@ -10,15 +10,15 @@ const languageCode = config.language;
 
 const compute = new Compute();
 
-const bot = new eris.CommandClient(config.token, {}, {
-    description: "A test bot made with Eris",
+const bot = new eris.CommandClient("Njg1ODIxNzA5MjA2NDIxNTA0.XqWa2g.jqxNYTiKAbz9swPox633AZplM14", {}, {
+    description: "A bot for managing VM servers",
     owner: "AhmedHalat",
     prefix: "!"
 });
 
 // When the bot is connected and ready, log to console.
 bot.on('ready', () => {
-  console.log('Connected and ready. V0.1');
+  console.log('Connected and ready. V1.1');
 });
 
 async function detectIntent(projectId, sessionId, query, contexts, languageCode) {
@@ -82,12 +82,20 @@ bot.on('error', err => {
   console.warn(err);
 });
 
-bot.registerCommand("vanilla", "What do you want to do to Vanilla", { // Make a ping command
-  // Responds with "Pong!" when someone says "!ping"
-
-  description: "Listing!",
-  fullDescription: `What do you want to do?`,
-  reactionButtons: [ // Add reaction buttons to the command
+const vanillaCommand = bot.registerCommand("vanilla", (msg, args) => { // Make an echo command
+    if(args.length === 0) { // If the user just typed "!echo", say "Invalid input"
+      try {
+        var res = executeQueries(projectId, sessionId, "Status mc-server", languageCode)
+      } catch (e) {
+        return "ERROR"
+      }
+      return res;
+    }
+  },
+  {
+    description: "Make the bot say something",
+    fullDescription: "The bot will echo whatever is after the command label.",
+    reactionButtons: [ // Add reaction buttons to the command
     {
       emoji: "ℹ️",
       type: "edit",
@@ -125,55 +133,119 @@ bot.registerCommand("vanilla", "What do you want to do to Vanilla", { // Make a 
         return res;
       }
     }
-  ],
-  reactionButtonTimeout: 300000 // After 30 seconds, the buttons won't work anymore
-});
+  ]
+  }
+);
 
-bot.registerCommand("pc", "What do you want to do to PC?", { // Make a ping command
-  // Responds with "Pong!" when someone says "!ping"
-
-  description: "Listing!",
-  fullDescription: `What do you want to do?`,
-  reactionButtons: [ // Add reaction buttons to the command
-    {
-      emoji: "ℹ️",
-      type: "edit",
-      response: (msg) => { // Reverse the message content
-        try {
-          var res = executeQueries(projectId, sessionId, "Status pc", languageCode)
-        } catch (e) {
-          return "ERROR"
-        }
-
-        return res;
+vanillaCommand.registerSubcommand("start", (msg, args) => { // Make a reverse subcommand under echo
+    if(args.length === 0) { // If the user just typed "!echo reverse", say "Invalid input"
+      try {
+        var res = executeQueries(projectId, sessionId, "start mc-server", languageCode)
+      } catch (e) {
+        return "ERROR"
       }
-    },
-    {
-      emoji: "▶️",
-      type: "edit",
-      response: (msg) => { // Reverse the message content
-        try {
-          var res = executeQueries(projectId, sessionId, "start pc", languageCode)
-        } catch (e) {
-          return "FAILED TO START"
-        }
-        return res;
-      }
-    },
-    {
-      emoji: "⏹",
-      type: "edit", // Pick a new pong variation
-      response: (msg) => { // Reverse the message content
-        try {
-          var res = executeQueries(projectId, sessionId, "stop pc", languageCode)
-        } catch (e) {
-          return "FAILED TO STOP"
-        }
-        return res;
-      }
+      return res;
     }
-  ],
-  reactionButtonTimeout: 300000 // After 30 seconds, the buttons won't work anymore
+  },
+  {
+    description: "Start the mc-server"
+  }
+);
+
+vanillaCommand.registerSubcommand("stop", (msg, args) => { // Make a reverse subcommand under echo
+    if(args.length === 0) { // If the user just typed "!echo reverse", say "Invalid input"
+      try {
+        var res = executeQueries(projectId, sessionId, "stop mc-server", languageCode)
+      } catch (e) {
+        return "ERROR"
+      }
+      return res;
+    }
+  },
+  {
+    description: "Stop the mc-server"
+  }
+);
+
+const windowsCommand = bot.registerCommand("windows", (msg, args) => { // Make an echo command
+    if(args.length === 0) { // If the user just typed "!echo", say "Invalid input"
+      try {
+        var res = executeQueries(projectId, sessionId, "Status windows", languageCode)
+      } catch (e) {
+        return "ERROR"
+      }
+      return res;
+    }
+  },
+  {
+    description: "Make the bot say something",
+    fullDescription: "The bot will echo whatever is after the command label.",
+    reactionButtons: [ // Add reaction buttons to the command
+      {
+        emoji: "ℹ️",
+        type: "edit",
+        response: (msg) => { // Reverse the message content
+          try {
+            var res = executeQueries(projectId, sessionId, "Status windows", languageCode)
+          } catch (e) {
+            return "ERROR"
+          }
+
+          return res;
+        }
+      },
+      {
+        emoji: "▶️",
+        type: "edit",
+        response: (msg) => { // Reverse the message content
+          try {
+            var res = executeQueries(projectId, sessionId, "start windows", languageCode)
+          } catch (e) {
+            return "FAILED TO START"
+          }
+          return res;
+        }
+      },
+      {
+        emoji: "⏹",
+        type: "edit", // Pick a new pong variation
+        response: (msg) => { // Reverse the message content
+          try {
+            var res = executeQueries(projectId, sessionId, "stop windows", languageCode)
+          } catch (e) {
+            return "FAILED TO STOP"
+          }
+          return res;
+        }
+      }
+    ]
+  }
+);
+
+windowsCommand.registerSubcommand("start", (msg, args) => { // Make a reverse subcommand under echo
+  if(args.length === 0) { // If the user just typed "!echo reverse", say "Invalid input"
+    try {
+      var res = executeQueries(projectId, sessionId, "start windows", languageCode)
+    } catch (e) {
+      return "ERROR"
+    }
+    return res;
+  }
+  return "stat";
 });
+
+windowsCommand.registerSubcommand("stop", (msg, args) => { // Make a reverse subcommand under echo
+  if(args.length === 0) { // If the user just typed "!echo reverse", say "Invalid input"
+    try {
+      var res = executeQueries(projectId, sessionId, "stop windows", languageCode)
+    } catch (e) {
+      return "ERROR"
+    }
+    return res;
+  }
+});
+
+bot.registerCommandAlias("mc", "vanilla");
+bot.registerCommandAlias("pc", "windows");
 
 bot.connect();
