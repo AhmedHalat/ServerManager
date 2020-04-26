@@ -23,7 +23,6 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
 
   function toggleServer(agent){
     agent.add(`Toggle`);
-
   }
 
   async function activateServer(agent){
@@ -32,16 +31,18 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
     const [vms] = await compute.getVMs();
     await Promise.all(
       vms.map(async (instance) => {
-        console.log(instance);
         if (servers.includes(instance.name)) {
           const [operation] = await compute
-            .zone(instance.zone.id)
-            .vm(instance.name)
-            .start();
+          .zone(instance.zone.id)
+          .vm(instance.name)
+          .start();
           return operation.promise();
         }
       })
-    );
+    ).catch(function(err) {
+      agent.add(err.message);
+      console.log(err.message); // some coding error in handling happened
+    });
     agent.add(`Booting up ${servers}`);
   }
 
@@ -54,13 +55,16 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         console.log(instance);
         if (servers.includes(instance.name)) {
           const [operation] = await compute
-            .zone(instance.zone.id)
-            .vm(instance.name)
-            .stop();
+          .zone(instance.zone.id)
+          .vm(instance.name)
+          .stop();
           return operation.promise();
         }
       })
-    );
+    ).catch(function(err) {
+      agent.add(err.message);
+      console.log(err.message); // some coding error in handling happened
+    });
     agent.add(`Shutting down ${servers}`);
   }
 
@@ -70,19 +74,19 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
   }
 
 
-async function listVMs() {
-  const vms = await compute.getVMs({
-    maxResults: 1000,
-  });
-  var str = "";
-  for(let vm of vms[0])
+  async function listVMs() {
+    const vms = await compute.getVMs({
+      maxResults: 1000,
+    });
+    var str = "";
+    for(let vm of vms[0])
     str += `${vm.metadata.name}  ${vm.metadata.status}  ${ vm.metadata.networkInterfaces[0].accessConfigs[0].natIP || ' ' }\n`;
-  if(str == ""){
-     console.log("Had an empty string")
-     listVMs()
-     }
-  else agent.add(str);
-}
+    if(str == ""){
+      console.log("Had an empty string")
+      listVMs()
+    }
+    else agent.add(str);
+  }
 
   let intentMap = new Map();
   intentMap.set('Default Welcome Intent', welcome);
