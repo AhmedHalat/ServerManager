@@ -9,11 +9,16 @@ const sessionId = config.id;
 const languageCode = config.language;
 
 const compute = new Compute();
-const bot = new eris.Client(config.discord.token);
+
+const bot = new eris.CommandClient(config.token, {}, {
+    description: "A test bot made with Eris",
+    owner: "AhmedHalat",
+    prefix: "!"
+});
 
 // When the bot is connected and ready, log to console.
 bot.on('ready', () => {
-  console.log('Connected and ready. V0.8');
+  console.log('Connected and ready. V0.1');
 });
 
 async function detectIntent(projectId, sessionId, query, contexts, languageCode) {
@@ -60,31 +65,115 @@ async function executeQueries(projectId, sessionId, query, languageCode) {
   return responses
 }
 
-bot.on('messageCreate', async (msg) => {
-
-  try{
+bot.on('messageCreate', (msg) => {
     var botWasMentioned = msg.mentions.find(mentionedUser => mentionedUser.id === bot.user.id,);
     if (botWasMentioned){
-      content = msg.content.toString().toLowerCase().replace("<@!685821709206421504>", "")
-      try {
-        var res = await executeQueries(projectId, sessionId, content, languageCode);
-        await msg.channel.createMessage(res);
-      } catch (e) {
-        console.log(e);
-        await msg.channel.createMessage("Sorry, I'm not sure I got that");
-      }
-
+      var author = `<@!${msg.author.id}>`;
+      content = msg.content.toString().toLowerCase().replace("<@!685821709206421504>", "");
+      var res = executeQueries(projectId, sessionId, content, languageCode)
+      .then(() => msg.channel.createMessage(author))
+      .then(() => msg.channel.createMessage("\n"+res))
+      .catch((er) => console.error(er));
     }
 
-    } catch (err) {
-      console.warn('Failed to respond to mention.');
-      console.error(err);
-      if (botWasMentioned) await msg.channel.createMessage('There seems to have been a problem.');
-    }
 });
 
 bot.on('error', err => {
   console.warn(err);
+});
+
+bot.registerCommand("vanilla", "What do you want to do to Vanilla", { // Make a ping command
+  // Responds with "Pong!" when someone says "!ping"
+
+  description: "Listing!",
+  fullDescription: `What do you want to do?`,
+  reactionButtons: [ // Add reaction buttons to the command
+    {
+      emoji: "ℹ️",
+      type: "edit",
+      response: (msg) => { // Reverse the message content
+        try {
+          var res = executeQueries(projectId, sessionId, "Status mc-server", languageCode)
+        } catch (e) {
+          return "ERROR"
+        }
+
+        return res;
+      }
+    },
+    {
+      emoji: "▶️",
+      type: "edit",
+      response: (msg) => { // Reverse the message content
+        try {
+          var res = executeQueries(projectId, sessionId, "start mc-server", languageCode)
+        } catch (e) {
+          return "FAILED TO START"
+        }
+        return res;
+      }
+    },
+    {
+      emoji: "⏹",
+      type: "edit", // Pick a new pong variation
+      response: (msg) => { // Reverse the message content
+        try {
+          var res = executeQueries(projectId, sessionId, "stop mc-server", languageCode)
+        } catch (e) {
+          return "FAILED TO STOP"
+        }
+        return res;
+      }
+    }
+  ],
+  reactionButtonTimeout: 300000 // After 30 seconds, the buttons won't work anymore
+});
+
+bot.registerCommand("pc", "What do you want to do to PC?", { // Make a ping command
+  // Responds with "Pong!" when someone says "!ping"
+
+  description: "Listing!",
+  fullDescription: `What do you want to do?`,
+  reactionButtons: [ // Add reaction buttons to the command
+    {
+      emoji: "ℹ️",
+      type: "edit",
+      response: (msg) => { // Reverse the message content
+        try {
+          var res = executeQueries(projectId, sessionId, "Status pc", languageCode)
+        } catch (e) {
+          return "ERROR"
+        }
+
+        return res;
+      }
+    },
+    {
+      emoji: "▶️",
+      type: "edit",
+      response: (msg) => { // Reverse the message content
+        try {
+          var res = executeQueries(projectId, sessionId, "start pc", languageCode)
+        } catch (e) {
+          return "FAILED TO START"
+        }
+        return res;
+      }
+    },
+    {
+      emoji: "⏹",
+      type: "edit", // Pick a new pong variation
+      response: (msg) => { // Reverse the message content
+        try {
+          var res = executeQueries(projectId, sessionId, "stop pc", languageCode)
+        } catch (e) {
+          return "FAILED TO STOP"
+        }
+        return res;
+      }
+    }
+  ],
+  reactionButtonTimeout: 300000 // After 30 seconds, the buttons won't work anymore
 });
 
 bot.connect();
