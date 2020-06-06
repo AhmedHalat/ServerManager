@@ -1,12 +1,6 @@
-const dialogflow = require('dialogflow');
-const eris = require('eris');
 const Compute = require('@google-cloud/compute');
-
-const sessionClient = new dialogflow.SessionsClient();
 const config = require('./config.json');
-const projectId = config.project_id;
-const sessionId = config.id;
-const languageCode = config.language;
+const eris = require("eris")
 
 const compute = new Compute();
 
@@ -15,77 +9,77 @@ const bot = new eris.CommandClient(config.token, {}, {
     owner: "AhmedHalat",
     prefix: "!"
 });
+const vanilla = 'mc-server';
+const pixelmon = 'pixel-server'
 
 // When the bot is connected and ready, log to console.
 bot.on('ready', () => {
-  console.log('Connected and ready. V1.1');
-});
-
-async function detectIntent(projectId, sessionId, query, contexts, languageCode) {
-  // The path to identify the agent that owns the created intent.
-  const sessionPath = sessionClient.sessionPath(projectId, sessionId);
-
-  // The text query request.
-  const request = {
-    session: sessionPath,
-    queryInput: {
-      text: {
-        text: query,
-        languageCode: languageCode,
-      }
-    }
-  };
-
-  if (contexts && contexts.length > 0) {
-    request.queryParams = {
-      contexts: contexts,
-    };
-  }
-
-  const responses = await sessionClient.detectIntent(request);
-  return responses[0];
-}
-
-async function executeQueries(projectId, sessionId, query, languageCode) {
-  // Keeping the context across queries let's us simulate an ongoing conversation with the bot
-  var responses = "";
-  let context;
-  let intentResponse;
-  try {
-    console.log(`Sending Query: ${query}`);
-    intentResponse = await detectIntent(projectId, sessionId, query, context,languageCode);
-    console.log(`Fulfillment Text: ${intentResponse.queryResult.fulfillmentText}`);
-    responses = `${intentResponse.queryResult.fulfillmentText}`;
-    // Use the context from this response for next queries
-    context = intentResponse.queryResult.outputContexts;
-  } catch (error) {
-    console.log(error);
-  }
-
-  return responses
-}
-
-bot.on('messageCreate', (msg) => {
-    var botWasMentioned = msg.mentions.find(mentionedUser => mentionedUser.id === bot.user.id,);
-    if (botWasMentioned){
-      var author = `<@!${msg.author.id}>`;
-      content = msg.content.toString().toLowerCase().replace("<@!685821709206421504>", "");
-      var res = executeQueries(projectId, sessionId, content, languageCode)
-      .then(() => msg.channel.createMessage(author))
-      .then(() => msg.channel.createMessage("\n"+res))
-      .catch((er) => console.error(er));
-    }
-
+  console.log('Connected and ready. V2');
 });
 
 bot.on('error', err => {
   console.warn(err);
 });
 
+/*
+  Compute Functions
+ */
+
+async function activateServer(instanceName){
+  const [vms] = await compute.getVMs();
+  await Promise.all(
+    vms.map(async (instance) => {
+      if (instanceName == instance.name) {
+        await compute
+        .zone(instance.zone.id)
+        .vm(instance.name)
+        .start();
+        return ;
+      }
+    })
+  ).catch(function(err) {
+    console.log(err.message); // some coding error in handling happened
+    return err.message;
+  });
+  return `Booting up ${instanceName}`;
+}
+
+async function deactivateServer(instanceName){
+  const [vms] = await compute.getVMs();
+  await Promise.all(
+    vms.map(async (instance) => {
+      if (instanceName == instance.name) {
+        await compute
+        .zone(instance.zone.id)
+        .vm(instance.name)
+        .stop();
+        return ;
+      }
+    })
+  ).catch(function(err) {
+    console.log(err.message); // some coding error in handling happened
+    return err.message;
+  });
+  return `Shutting down ${instanceName}`;
+}
+
+async function getStatus(instanceName) {
+  const vms = await compute.getVMs({
+    maxResults: 10,
+  });
+  var str = "";
+  for(let vm of vms[0])
+    if(instanceName == vm.metadata.name)str += `${vm.metadata.name}  ${vm.metadata.status}  ${ vm.metadata.networkInterfaces[0].accessConfigs[0].natIP || ' ' }\n`;
+  return str || "There are no VMs with that name"
+}
+
+/*
+  Bot Commands
+ */
 const vanillaCommand = bot.registerCommand("vanilla", (msg, args) => { // Make an echo command
     if(args.length === 0) { // If the user just typed "!echo", say "Invalid input"
       try {
-        var res = executeQueries(projectId, sessionId, "Status mc-server", languageCode)
+        var res = getStatus(vanilla)
       } catch (e) {
         return "ERROR"
       }
@@ -101,7 +95,7 @@ const vanillaCommand = bot.registerCommand("vanilla", (msg, args) => { // Make a
       type: "edit",
       response: (msg) => { // Reverse the message content
         try {
-          var res = executeQueries(projectId, sessionId, "Status mc-server", languageCode)
+          var res = getStatus(vanilla)
         } catch (e) {
           return "ERROR"
         }
@@ -114,7 +108,7 @@ const vanillaCommand = bot.registerCommand("vanilla", (msg, args) => { // Make a
       type: "edit",
       response: (msg) => { // Reverse the message content
         try {
-          var res = executeQueries(projectId, sessionId, "start mc-server", languageCode)
+          var res = activateServer(vanilla)
         } catch (e) {
           return "FAILED TO START"
         }
@@ -126,7 +120,7 @@ const vanillaCommand = bot.registerCommand("vanilla", (msg, args) => { // Make a
       type: "edit", // Pick a new pong variation
       response: (msg) => { // Reverse the message content
         try {
-          var res = executeQueries(projectId, sessionId, "stop mc-server", languageCode)
+          var res = deactivateServer(vanilla)
         } catch (e) {
           return "FAILED TO STOP"
         }
@@ -140,9 +134,9 @@ const vanillaCommand = bot.registerCommand("vanilla", (msg, args) => { // Make a
 vanillaCommand.registerSubcommand("start", (msg, args) => { // Make a reverse subcommand under echo
     if(args.length === 0) { // If the user just typed "!echo reverse", say "Invalid input"
       try {
-        var res = executeQueries(projectId, sessionId, "start mc-server", languageCode)
+        var res = activateServer(vanilla)
       } catch (e) {
-        return "ERROR"
+        return "Failed to start"
       }
       return res;
     }
@@ -155,7 +149,7 @@ vanillaCommand.registerSubcommand("start", (msg, args) => { // Make a reverse su
 vanillaCommand.registerSubcommand("stop", (msg, args) => { // Make a reverse subcommand under echo
     if(args.length === 0) { // If the user just typed "!echo reverse", say "Invalid input"
       try {
-        var res = executeQueries(projectId, sessionId, "stop mc-server", languageCode)
+        var res = deactivateServer(vanilla)
       } catch (e) {
         return "ERROR"
       }
@@ -167,10 +161,10 @@ vanillaCommand.registerSubcommand("stop", (msg, args) => { // Make a reverse sub
   }
 );
 
-const windowsCommand = bot.registerCommand("windows", (msg, args) => { // Make an echo command
+const pixelmonCommand = bot.registerCommand("pixelmon", (msg, args) => { // Make an echo command
     if(args.length === 0) { // If the user just typed "!echo", say "Invalid input"
       try {
-        var res = executeQueries(projectId, sessionId, "Status windows", languageCode)
+        var res = getStatus(pixelmon)
       } catch (e) {
         return "ERROR"
       }
@@ -181,71 +175,79 @@ const windowsCommand = bot.registerCommand("windows", (msg, args) => { // Make a
     description: "Make the bot say something",
     fullDescription: "The bot will echo whatever is after the command label.",
     reactionButtons: [ // Add reaction buttons to the command
-      {
-        emoji: "ℹ️",
-        type: "edit",
-        response: (msg) => { // Reverse the message content
-          try {
-            var res = executeQueries(projectId, sessionId, "Status windows", languageCode)
-          } catch (e) {
-            return "ERROR"
-          }
+    {
+      emoji: "ℹ️",
+      type: "edit",
+      response: (msg) => { // Reverse the message content
+        try {
+          var res = getStatus(pixelmon)
+        } catch (e) {
+          return "ERROR"
+        }
 
-          return res;
-        }
-      },
-      {
-        emoji: "▶️",
-        type: "edit",
-        response: (msg) => { // Reverse the message content
-          try {
-            var res = executeQueries(projectId, sessionId, "start windows", languageCode)
-          } catch (e) {
-            return "FAILED TO START"
-          }
-          return res;
-        }
-      },
-      {
-        emoji: "⏹",
-        type: "edit", // Pick a new pong variation
-        response: (msg) => { // Reverse the message content
-          try {
-            var res = executeQueries(projectId, sessionId, "stop windows", languageCode)
-          } catch (e) {
-            return "FAILED TO STOP"
-          }
-          return res;
-        }
+        return res;
       }
-    ]
+    },
+    {
+      emoji: "▶️",
+      type: "edit",
+      response: (msg) => { // Reverse the message content
+        try {
+          var res = activateServer(pixelmon)
+        } catch (e) {
+          return "FAILED TO START"
+        }
+        return res;
+      }
+    },
+    {
+      emoji: "⏹",
+      type: "edit", // Pick a new pong variation
+      response: (msg) => { // Reverse the message content
+        try {
+          var res = deactivateServer(pixelmon)
+        } catch (e) {
+          return "FAILED TO STOP"
+        }
+        return res;
+      }
+    }
+  ]
   }
 );
 
-windowsCommand.registerSubcommand("start", (msg, args) => { // Make a reverse subcommand under echo
-  if(args.length === 0) { // If the user just typed "!echo reverse", say "Invalid input"
-    try {
-      var res = executeQueries(projectId, sessionId, "start windows", languageCode)
-    } catch (e) {
-      return "ERROR"
+pixelmonCommand.registerSubcommand("start", (msg, args) => { // Make a reverse subcommand under echo
+    if(args.length === 0) { // If the user just typed "!echo reverse", say "Invalid input"
+      try {
+        var res = activateServer(pixelmon)
+      } catch (e) {
+        return "Failed to start"
+      }
+      return res;
     }
-    return res;
+  },
+  {
+    description: "Start the mc-server"
   }
-  return "stat";
-});
+);
 
-windowsCommand.registerSubcommand("stop", (msg, args) => { // Make a reverse subcommand under echo
-  if(args.length === 0) { // If the user just typed "!echo reverse", say "Invalid input"
-    try {
-      var res = executeQueries(projectId, sessionId, "stop windows", languageCode)
-    } catch (e) {
-      return "ERROR"
+pixelmonCommand.registerSubcommand("stop", (msg, args) => { // Make a reverse subcommand under echo
+    if(args.length === 0) { // If the user just typed "!echo reverse", say "Invalid input"
+      try {
+        var res = deactivateServer(pixelmon)
+      } catch (e) {
+        return "ERROR"
+      }
+      return res;
     }
-    return res;
+  },
+  {
+    description: "Stop the mc-server"
   }
-});
+);
+
 
 bot.registerCommandAlias("mc", "vanilla");
-bot.registerCommandAlias("pc", "windows");
+bot.registerCommandAlias("pm", "pixelmon");
 
 bot.connect();
