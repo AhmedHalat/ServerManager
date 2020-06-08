@@ -5,10 +5,11 @@ const compute = new Compute();
 const vanilla = 'mc-server';
 const pixelmon = 'pixel-server'
 const token = ''
+const author = 'Ahmed Halat'
 
 const bot = new eris.CommandClient(token, {}, {
     description: "A bot for managing VM servers",
-    owner: "AhmedHalat",
+    owner: author,
     prefix: "!"
 });
 
