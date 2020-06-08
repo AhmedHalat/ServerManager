@@ -1,16 +1,17 @@
 const Compute = require('@google-cloud/compute');
-const config = require('./config.json');
 const eris = require("eris")
-
 const compute = new Compute();
 
-const bot = new eris.CommandClient(config.token, {}, {
+const vanilla = 'mc-server';
+const pixelmon = 'pixel-server'
+const token = ''
+
+const bot = new eris.CommandClient(token, {}, {
     description: "A bot for managing VM servers",
     owner: "AhmedHalat",
     prefix: "!"
 });
-const vanilla = 'mc-server';
-const pixelmon = 'pixel-server'
+
 
 // When the bot is connected and ready, log to console.
 bot.on('ready', () => {
